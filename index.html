@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoQuiz : Histoire en action !</title>
+    <style>
+        body {
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Arial Rounded MT Bold', 'Verdana', sans-serif;
+            background-image: url('background_image.png');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            margin: 0;
+            padding: 0;
+            color: #2c1b00;
+            font-size: 18px;
+        }
+
+        #quiz-container {
+    backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.95);
+            max-width: 850px;
+            margin: 50px auto;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #4b2e00;
+            font-size: 30px;
+        }
+
+        .choices button {
+            display: block;
+            margin: 10px 0;
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            background-color: #e0b76a;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .choices button:hover {
+            background-color: #c79845;
+        }
+
+        #feedback {
+            margin-top: 25px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        #next-btn, #skip-btn, #restart-btn, #fullscreen-btn, #toggle-music {
+            margin: 20px 5px;
+            padding: 12px 22px;
+            font-size: 18px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            background-color: #a07d44;
+            color: white;
+        }
+
+        .question {
+            font-size: 22px;
+            font-weight: 500;
+            color: #3c2b0d;
+        }
+
+        #summary {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        #fullscreen-exit {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            display: none;
+            z-index: 999;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .blink-red {
+            animation: blink 1s step-start infinite;
+            color: red;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <h1>ChronoQuiz : Histoire en action !</h1>
+    <div id="question" class="question"></div>
+    <div id="choices" class="choices"></div>
+    <div id="feedback"></div>
+    <div id="extra-info" style="display:none; margin-top: 20px; font-size: 20px; font-weight: 400; color: #1d1d1d; line-height: 1.8; font-family: Georgia, serif;"></div>
+    <div id="summary"></div>
+        <button id="skip-btn" style="margin-bottom: 20px;">Passer</button>
+    <button id="restart-btn" style="display:none;">Recommencer</button>
+    <button id="fullscreen-btn">Mode Plein Écran</button>
+    <button id="toggle-music">🔊 Musique</button>
+</div>
+<button id="fullscreen-exit">Quitter le plein écran</button>
+
+<audio id="background-music" loop autoplay>
+    <source src="background_music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const questions = [
+  {
+    "q": "Quelle était l’une des causes principales de l’Acte d’Union de 1840 ?",
+    "options": [
+      "L’indépendance du Bas-Canada",
+      "L’instauration du fédéralisme",
+      "L’insurrection des Patriotes",
+      "L’abandon de la monarchie britannique"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, le Bas-Canada n'était pas indépendant à cette époque.",
+      "Non, le fédéralisme n’était pas encore instauré.",
+      "Bonne réponse ! L’insurrection des Patriotes a mené à une volonté d’union.",
+      "Non, la monarchie britannique est restée en place après 1840."
+    ]
+  },
+  {
+    "q": "Quel était le but du rapport Durham ?",
+    "options": [
+      "Favoriser la Révolution américaine",
+      "Proposer une union des deux Canadas",
+      "Éliminer le commerce des fourrures",
+      "Renforcer l’indépendance du Bas-Canada"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Non, la Révolution américaine était terminée depuis longtemps.",
+      "Bonne réponse ! Le rapport Durham proposait notamment l’union des deux Canadas.",
+      "Non, ce n’était pas lié au commerce des fourrures.",
+      "Non, le rapport visait plutôt une centralisation."
+    ]
+  },
+  {
+    "q": "Que propose l’Acte de Québec de 1774 ?",
+    "options": [
+      "L’abolition de la religion catholique",
+      "L’établissement d’un gouvernement républicain",
+      "La reconnaissance du droit civil français",
+      "L’annexion aux États-Unis"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, au contraire, il protège la religion catholique.",
+      "Non, le régime républicain ne faisait pas partie de l’Acte de Québec.",
+      "Bonne réponse ! Le droit civil français a été reconnu.",
+      "Non, il n’a jamais été question d’annexion aux États-Unis dans cet acte."
+    ]
+  },
+  {
+    "q": "Quel groupe a le plus contribué à la colonisation du Saguenay au 19e siècle ?",
+    "options": [
+      "Les Loyalistes",
+      "Les immigrants irlandais",
+      "Les Canadiens français",
+      "Les Métis"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, les Loyalistes se sont installés ailleurs.",
+      "Non, bien que présents, ce n’était pas le groupe majoritaire.",
+      "Bonne réponse ! Les Canadiens français ont joué un rôle central.",
+      "Non, les Métis étaient surtout présents dans l’Ouest."
+    ]
+  },
+  {
+    "q": "En quelle année la Confédération canadienne a-t-elle été créée ?",
+    "options": [
+      "1759",
+      "1837",
+      "1867",
+      "1905"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, 1759 correspond à la bataille des Plaines d’Abraham.",
+      "Non, 1837 correspond aux rébellions des Patriotes.",
+      "Bonne réponse ! 1867 marque la création de la Confédération.",
+      "Non, 1905 est bien plus tard."
+    ]
+  },
+  {
+    "q": "Quelle province n’était PAS membre de la Confédération en 1867 ?",
+    "options": [
+      "Québec",
+      "Nouvelle-Écosse",
+      "Colombie-Britannique",
+      "Ontario"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Faux, le Québec faisait partie de la Confédération dès 1867.",
+      "Faux, la Nouvelle-Écosse aussi était membre fondatrice.",
+      "Bonne réponse ! La Colombie-Britannique a joint plus tard en 1871.",
+      "Faux, l’Ontario est une province fondatrice."
+    ]
+  },
+  {
+    "q": "Quel est l’objectif principal de la politique nationale de John A. Macdonald ?",
+    "options": [
+      "Favoriser la souveraineté du Québec",
+      "Stimuler l’immigration en Alberta",
+      "Protéger l’industrie canadienne",
+      "Interdire le chemin de fer"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, la souveraineté du Québec n’était pas une priorité pour Macdonald.",
+      "Pas tout à fait, bien que l’immigration soit un aspect secondaire.",
+      "Bonne réponse ! Il voulait protéger l’économie canadienne.",
+      "Faux, le chemin de fer était au contraire un projet clé."
+    ]
+  },
+  {
+    "q": "Qu’est-ce que la rébellion de la rivière Rouge en 1869-1870 a permis de revendiquer ?",
+    "options": [
+      "L’abolition de la peine de mort",
+      "Les droits des Autochtones",
+      "Les droits des Métis",
+      "L’indépendance du Manitoba"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, ce n’était pas l’objectif principal du mouvement.",
+      "Non, bien que liés, les Autochtones n’étaient pas le centre de cette revendication.",
+      "Bonne réponse ! Les Métis voulaient faire valoir leurs droits.",
+      "Faux, le Manitoba a été intégré au Canada à la suite de la rébellion."
+    ]
+  },
+  {
+    "q": "Quelle est une conséquence de la Première Guerre mondiale sur le Canada ?",
+    "options": [
+      "L’indépendance du Québec",
+      "L’unification du Canada et des États-Unis",
+      "L’autonomie accrue du Canada sur la scène internationale",
+      "Le retour à la monarchie française"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, le Québec n’est pas devenu indépendant.",
+      "Non, le Canada ne s’est pas uni aux États-Unis.",
+      "Bonne réponse ! Le Canada s’est affirmé sur la scène mondiale.",
+      "Faux, le Canada est demeuré lié à la monarchie britannique."
+    ]
+  },
+  {
+    "q": "Quel événement est associé à la Crise de la conscription en 1944 ?",
+    "options": [
+      "Le rejet de l’Acte constitutionnel",
+      "L'opposition à l'enrôlement forcé des Canadiens",
+      "La création de l’OTAN",
+      "L’abolition du droit de vote"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Non, ce n’est pas lié à cette crise.",
+      "Bonne réponse ! Plusieurs Canadiens s’opposaient à la conscription.",
+      "Non, l’OTAN a été créé après la guerre.",
+      "Faux, le droit de vote n’a pas été aboli à ce moment."
+    ]
+  },
+  {
+    "q": "Qu’est-ce que le Statut de Westminster de 1931 a permis au Canada ?",
+    "options": [
+      "De devenir une république",
+      "D’obtenir l’indépendance législative",
+      "De rejoindre la Confédération américaine",
+      "D’abolir la monarchie britannique"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Faux, le Canada est resté une monarchie constitutionnelle.",
+      "Bonne réponse ! Le Canada a gagné le contrôle de sa législation.",
+      "Non, cette union n’a jamais eu lieu.",
+      "Faux, la monarchie britannique a été conservée."
+    ]
+  },
+  {
+    "q": "Quelle fut la conséquence du Rapport Parent (1963-1966) ?",
+    "options": [
+      "La militarisation de l’éducation",
+      "La nationalisation des banques",
+      "La réforme du système scolaire québécois",
+      "L’indépendance du Canada"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, ce n’était pas le cas.",
+      "Non, cela ne concerne pas le système bancaire.",
+      "Bonne réponse ! Le rapport a transformé l’éducation au Québec.",
+      "Non, l’indépendance du Canada s’est jouée autrement."
+    ]
+  },
+  {
+    "q": "Quel fut le rôle de Duplessis dans l’histoire du Québec ?",
+    "options": [
+      "Promoteur du syndicalisme",
+      "Nationaliste conservateur opposé à l’intervention de l’État",
+      "Chef de la Révolution tranquille",
+      "Architecte de la Loi sur les langues officielles"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Non, Duplessis s’opposait souvent aux syndicats.",
+      "Bonne réponse ! Il prônait une vision conservatrice du Québec.",
+      "Non, c’est venu après lui.",
+      "Faux, cette loi est venue plus tard au fédéral."
+    ]
+  },
+  {
+    "q": "Que visait la Révolution tranquille ?",
+    "options": [
+      "La protection de l’Église catholique",
+      "Le renforcement de l’influence britannique",
+      "La modernisation de l’État québécois",
+      "Le retour au régime seigneurial"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, c’est plutôt une séparation de l’État et de l’Église.",
+      "Non, au contraire, c’était un mouvement nationaliste québécois.",
+      "Bonne réponse ! L’État québécois s’est modernisé.",
+      "Faux, le régime seigneurial avait disparu bien avant."
+    ]
+  },
+  {
+    "q": "Qu’est-ce que la Loi 101 a instauré en 1977 ?",
+    "options": [
+      "L’interdiction du français à l’école",
+      "L’obligation de parler anglais à la maison",
+      "Le français comme langue officielle du Québec",
+      "La fusion des provinces maritimes"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Faux, elle a plutôt renforcé le français.",
+      "Non, elle protège le droit au français.",
+      "Bonne réponse ! Le français est devenu langue officielle.",
+      "Non, cela ne concerne pas les provinces maritimes."
+    ]
+  },
+  {
+    "q": "Quel est le rôle de la Commission royale sur le bilinguisme et le biculturalisme (années 1960) ?",
+    "options": [
+      "Promouvoir la souveraineté du Québec",
+      "Étudier les tensions linguistiques au Canada",
+      "Abolir le bilinguisme",
+      "Fusionner les provinces francophones"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Faux, ce n’était pas l’objectif de la commission.",
+      "Bonne réponse ! Elle a mené à des réformes linguistiques importantes.",
+      "Non, elle visait plutôt à le renforcer.",
+      "Faux, il n’a jamais été question de fusionner les provinces."
+    ]
+  },
+  {
+    "q": "Quelle est l’une des causes du rejet de l’Accord du lac Meech ?",
+    "options": [
+      "L’opposition de l’Église catholique",
+      "L’intervention des États-Unis",
+      "Le refus de reconnaître le Québec comme société distincte",
+      "Le départ de la Colombie-Britannique"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, ce n’est pas lié à la religion.",
+      "Non, les États-Unis ne sont pas impliqués dans cet accord.",
+      "Bonne réponse ! Ce refus a été une cause centrale.",
+      "Faux, la Colombie-Britannique est toujours une province canadienne."
+    ]
+  },
+  {
+    "q": "Quel référendum sur la souveraineté du Québec a obtenu le plus grand appui ?",
+    "options": [
+      "Celui de 1960",
+      "Celui de 1972",
+      "Celui de 1980",
+      "Celui de 1995"
+    ],
+    "answer": 3,
+    "feedback": [
+      "Non, il n’y a pas eu de référendum en 1960.",
+      "Non, 1972 ne fut pas une année de référendum.",
+      "Non, le soutien fut moins élevé en 1980.",
+      "Bonne réponse ! Le référendum de 1995 a été très serré."
+    ]
+  },
+  {
+    "q": "Qu’est-ce que le rapatriement de la Constitution en 1982 a permis ?",
+    "options": [
+      "La séparation du Canada de la monarchie",
+      "Le contrôle total de la Constitution par le Canada",
+      "L’indépendance du Québec",
+      "L’annexion des provinces atlantiques"
+    ],
+    "answer": 1,
+    "feedback": [
+      "Non, la monarchie est toujours en place.",
+      "Bonne réponse ! Le Canada a gagné un plein contrôle constitutionnel.",
+      "Non, le Québec n’est pas devenu indépendant.",
+      "Faux, aucune province n’a été annexée."
+    ]
+  },
+  {
+    "q": "Quel mouvement a revendiqué la reconnaissance des droits autochtones dans les années 1990 ?",
+    "options": [
+      "Le mouvement Patriote",
+      "La crise d’Octobre",
+      "La crise d’Oka",
+      "Le Front commun des syndicats"
+    ],
+    "answer": 2,
+    "feedback": [
+      "Non, ce mouvement remonte au 19e siècle.",
+      "Non, la crise d’Octobre portait sur d'autres enjeux.",
+      "Bonne réponse ! La crise d’Oka a marqué cette revendication.",
+      "Faux, les syndicats défendaient d’autres causes."
+    ]
+  }
+];
+
+const extraInfo = [
+  "L’Acte d’Union a été adopté en 1840 après les rébellions des Patriotes dans le Bas-Canada (dirigés par Louis-Joseph Papineau) et du Haut-Canada (menés par William Lyon Mackenzie). L’union visait à centraliser le pouvoir à Kingston, puis Montréal, et à assimiler les Canadiens français.",
+  "Le rapport Durham, rédigé par Lord Durham en 1839, proposait l’union des deux Canadas pour réduire les tensions ethniques. Il prônait aussi l’implantation d’un gouvernement responsable et l’assimilation des Canadiens français, qu’il jugeait « sans histoire ni littérature ».",
+  "L’Acte de Québec de 1774, adopté par le Parlement britannique, élargit les frontières du Québec jusqu’à la vallée de l’Ohio, rétablit le droit civil français et garantit la liberté de religion catholique, ce qui visait à apaiser les élites canadiennes-françaises après la Conquête.",
+  "Au 19e siècle, les Canadiens français ont massivement colonisé le Saguenay-Lac-Saint-Jean, notamment via l’ouverture de terres à Chicoutimi, Hébertville et Alma. Des curés colonisateurs comme Nicolas-Tolentin Hébert ont joué un rôle crucial dans l’implantation des familles.",
+  "La Confédération a été créée le 1er juillet 1867 à Charlottetown et Québec, sous l’impulsion de John A. Macdonald et George-Étienne Cartier. L’Ontario, le Québec, la Nouvelle-Écosse et le Nouveau-Brunswick en sont les membres fondateurs.",
+  "La Colombie-Britannique, qui faisait partie du territoire de la Compagnie de la Baie d’Hudson, a joint la Confédération en 1871 après avoir reçu la promesse d’un chemin de fer transcontinental. Victoria est devenue la capitale provinciale.",
+  "La politique nationale de John A. Macdonald (1879) visait à développer l’économie canadienne grâce à des tarifs douaniers, le chemin de fer du Canadien Pacifique reliant l’Est à l’Ouest, et une immigration massive dans les Prairies.",
+  "La rébellion de la rivière Rouge (1869–1870) fut dirigée par Louis Riel à Fort Garry (Winnipeg). Elle mena à la création du Manitoba et à la reconnaissance partielle des droits linguistiques, religieux et territoriaux des Métis franco-catholiques.",
+  "Après la Première Guerre mondiale, le Canada a signé le traité de Versailles en 1919 de façon indépendante et obtenu un siège à la Société des Nations. Cela marque une étape clé vers son autonomie internationale, confirmée par le Statut de Westminster en 1931.",
+  "La crise de la conscription de 1944 survient sous le gouvernement de Mackenzie King. L’opposition fut particulièrement vive au Québec, où les appels à l’enrôlement obligatoire rappelaient les tensions de 1917. Plusieurs émeutes ont éclaté à Montréal.",
+  "Le Statut de Westminster, adopté par le Parlement britannique en 1931, reconnaissait l’indépendance législative des dominions comme le Canada, sauf pour les modifications à la Constitution, qui restaient une prérogative britannique jusqu’en 1982.",
+  "Le Rapport Parent, produit entre 1963 et 1966, a mené à la création du ministère de l’Éducation du Québec, à la fondation du réseau des cégeps, à la gratuité scolaire et à la modernisation de l’enseignement secondaire et supérieur.",
+  "Maurice Duplessis, chef de l’Union nationale, a gouverné le Québec de 1936 à 1939 et de 1944 à 1959. Il défendait le cléricalisme, s’opposait aux syndicats, favorisait l’autonomie provinciale et a instauré le « crédit social » rural.",
+  "La Révolution tranquille (1960–1970) a vu le Québec se moderniser sous Jean Lesage. Elle a mené à la nationalisation de l’électricité (Hydro-Québec), à la sécularisation des institutions et à la mise en place d’un État-providence.",
+  "Adoptée sous le gouvernement de René Lévesque en 1977, la Loi 101 (Charte de la langue française) a fait du français la langue officielle du Québec dans l’administration, l’affichage, les entreprises et les écoles publiques.",
+  "La Commission royale d’enquête sur le bilinguisme et le biculturalisme (1963–1969) a mené à la Loi sur les langues officielles de 1969. Elle recommandait l’égalité entre francophones et anglophones dans tout le Canada.",
+  "L’Accord du lac Meech (1987) visait à faire entrer le Québec dans la Constitution de 1982. Il fut rejeté en 1990 notamment à cause du refus de certaines provinces (Manitoba, Terre-Neuve) de reconnaître le Québec comme société distincte.",
+  "Le référendum de 1995, organisé par le gouvernement de Jacques Parizeau, a été remporté de justesse par le camp du NON. Le camp du OUI a obtenu 49,42 % des voix. Une forte mobilisation citoyenne a marqué l’événement.",
+  "Le rapatriement de la Constitution par Pierre Elliott Trudeau en 1982 a doté le Canada de sa propre Charte des droits et libertés. Le Québec, dirigé alors par René Lévesque, n’a jamais signé cet accord constitutionnel.",
+  "La crise d’Oka (1990) a éclaté à Kanesatake, près de Montréal, quand des Mohawks ont protesté contre l’agrandissement d’un terrain de golf sur des terres sacrées. L’armée canadienne a été déployée. Le conflit a duré 78 jours."
+];
+
+let currentQuestion = 0;
+let score = 0;
+
+const questionEl = document.getElementById("question");
+const choicesEl = document.getElementById("choices");
+const feedbackEl = document.getElementById("feedback");
+const extraEl = document.getElementById("extra-info");
+const skipBtn = document.getElementById("skip-btn");
+const restartBtn = document.getElementById("restart-btn");
+const summaryEl = document.getElementById("summary");
+const fullscreenExit = document.getElementById("fullscreen-exit");
+const music = document.getElementById("background-music");
+
+function showQuestion(index) {
+    const q = questions[index];
+    questionEl.textContent = q.q;
+    choicesEl.innerHTML = "";
+    feedbackEl.textContent = "";
+    extraEl.style.display = "none";
+    extraEl.textContent = "";
+    skipBtn.style.display = "none";
+
+    q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(i, q.answer, q.feedback);
+        choicesEl.appendChild(btn);
+    });
+}
+
+function selectAnswer(selected, correct, feedbacks) {
+    if (selected === correct) {
+        score++;
+        feedbackEl.textContent = feedbacks[selected];
+        extraEl.textContent = extraInfo[currentQuestion];
+        extraEl.style.display = "block";
+        skipBtn.style.display = "inline-block";
+    } else {
+        feedbackEl.innerHTML = feedbacks[selected] + ' <span class="blink-red">Je te laisse la chance de te reprendre.</span>';
+    }
+}
+
+function nextQuestion() {
+    currentQuestion++;
+    if (currentQuestion < questions.length) {
+        showQuestion(currentQuestion);
+    } else {
+        endQuiz();
+    }
+}
+
+function endQuiz() {
+    questionEl.textContent = "";
+    choicesEl.innerHTML = "";
+    feedbackEl.textContent = "Félicitations ! Vous avez terminé le quiz.";
+    summaryEl.textContent = "Vous avez obtenu " + score + " / " + questions.length;
+    restartBtn.style.display = "inline-block";
+    skipBtn.style.display = "none";
+}
+
+skipBtn.onclick = () => {
+    if (feedbackEl.textContent.includes("Bonne réponse")) {
+        nextQuestion();
+    }
+};
+
+restartBtn.onclick = () => {
+    currentQuestion = 0;
+    score = 0;
+    summaryEl.textContent = "";
+    restartBtn.style.display = "none";
+    showQuestion(currentQuestion);
+};
+
+document.getElementById("fullscreen-btn").onclick = () => {
+    document.documentElement.requestFullscreen();
+    fullscreenExit.style.display = "block";
+};
+
+fullscreenExit.onclick = () => {
+    document.exitFullscreen();
+    fullscreenExit.style.display = "none";
+};
+
+document.getElementById("toggle-music").onclick = () => {
+    if (music.paused) {
+        music.play();
+        document.getElementById("toggle-music").textContent = "🔇 Musique";
+    } else {
+        music.pause();
+        document.getElementById("toggle-music").textContent = "🔊 Musique";
+    }
+};
+
+showQuestion(currentQuestion);
+</script>
+</body>
+</html>
